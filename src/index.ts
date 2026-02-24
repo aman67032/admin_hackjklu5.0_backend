@@ -40,12 +40,43 @@ app.use(mongoSanitize());
 app.use(hpp());
 
 // General Middleware
+const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://admin-hackjklu5-0-frontend.vercel.app', // Add frontend prod URL if known
+];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Connect to MongoDB
+const connectDB = async () => {
+    try {
+        if (mongoose.connection.readyState >= 1) {
+            return;
+        }
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/hackjklu5_admin');
+        console.log('⚡ Connected to MongoDB');
+    } catch (error) {
+        console.error('❌ MongoDB connection error:', error);
+        // Do not process.exit(1) here as it will kill the Vercel serverless function
+    }
+};
+
+// Ensure DB connection before handling requests (Serverless optimization)
+app.use(async (req, res, next) => {
+    await connectDB();
+    next();
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -56,25 +87,22 @@ app.use('/api/settings', settingsRoutes);
 
 // Root route
 app.get('/', (req, res) => {
-    res.send('HackJKLU 5.0 Admin API is running!');
+    res.send('HackJKLU 5.0 Admin API is running! ⚡');
 });
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), dbState: mongoose.connection.readyState });
 });
 
-// Connect to MongoDB and start server
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/hackjklu5_admin')
-    .then(() => {
-        console.log('⚡ Connected to MongoDB');
+// Start server locally (Vercel uses the exported app)
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    // We only connect here explicitly for local dev to see the initial console log
+    connectDB().then(() => {
         app.listen(PORT, () => {
             console.log(`🏛️  HackJKLU 5.0 Admin API running on port ${PORT}`);
         });
-    })
-    .catch((error) => {
-        console.error('❌ MongoDB connection error:', error);
-        process.exit(1);
     });
+}
 
 export default app;

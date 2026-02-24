@@ -47,7 +47,8 @@ app.use(hpp());
 // General Middleware
 const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:3000',
-    'https://admin-hackjklu5-0-frontend.vercel.app', // Add frontend prod URL if known
+    'https://admin-hackjklu5-0-frontend.vercel.app',
+    'https://admin-hackjklu5-0.vercel.app', // Correct production URL
 ];
 
 app.use(cors({

@@ -54,6 +54,11 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/exports', exportRoutes);
 app.use('/api/settings', settingsRoutes);
 
+// Root route
+app.get('/', (req, res) => {
+    res.send('HackJKLU 5.0 Admin API is running!');
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

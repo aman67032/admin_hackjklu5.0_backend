@@ -23,6 +23,9 @@ import { authMiddleware } from './middleware/auth';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust First Proxy (needed for Vercel/Rate Limiting)
+app.set('trust proxy', 1);
+
 // Security Middleware
 app.use(helmet()); // Set security HTTP headers
 app.disable('etag'); // Disable ETags to prevent info leak
@@ -89,6 +92,19 @@ app.get('/', (req, res) => {
 // Health check
 app.get('/api/health', authMiddleware, (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), dbState: mongoose.connection.readyState });
+});
+
+// Global Error Handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error(`Status: ${err.status || 500} | Error: ${err.message}`);
+
+    // Don't leak stack trace in production
+    const response = {
+        error: err.message || 'Server error',
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    };
+
+    res.status(err.status || 500).json(response);
 });
 
 // Start server locally (Vercel uses the exported app)

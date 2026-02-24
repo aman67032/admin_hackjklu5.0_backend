@@ -24,13 +24,14 @@ router.post('/login', loginLimiter, async (req: Request, res: Response): Promise
         }
 
         const admin = await Admin.findOne({ username });
-        if (!admin) {
-            res.status(401).json({ error: 'Invalid credentials.' });
-            return;
-        }
 
-        const isMatch = await bcrypt.compare(password, admin.passwordHash);
-        if (!isMatch) {
+        // Use a dummy hash for comparison if user doesn't exist to prevent timing attacks
+        // This ensures the response time is consistent regardless of whether the user exists
+        const dummyHash = '$2a$10$K9p7Oc99zpxzS5M.T.S6OuEaO.Vl9M/u.PzD9B3fU6g3v6/bYv1qy';
+        const passwordToCompare = admin ? admin.passwordHash : dummyHash;
+        const isMatch = await bcrypt.compare(password, passwordToCompare);
+
+        if (!admin || !isMatch) {
             res.status(401).json({ error: 'Invalid credentials.' });
             return;
         }

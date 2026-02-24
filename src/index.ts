@@ -18,12 +18,14 @@ import teamRoutes from './routes/teams';
 import statsRoutes from './routes/stats';
 import exportRoutes from './routes/exports';
 import settingsRoutes from './routes/settings';
+import { authMiddleware } from './middleware/auth';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Security Middleware
 app.use(helmet()); // Set security HTTP headers
+app.disable('etag'); // Disable ETags to prevent info leak
 
 // Rate limiting
 const limiter = rateLimit({
@@ -46,13 +48,7 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: allowedOrigins,
     credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -91,7 +87,7 @@ app.get('/', (req, res) => {
 });
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', authMiddleware, (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), dbState: mongoose.connection.readyState });
 });
 

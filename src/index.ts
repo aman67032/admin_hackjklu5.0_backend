@@ -18,6 +18,7 @@ import teamRoutes from './routes/teams';
 import statsRoutes from './routes/stats';
 import exportRoutes from './routes/exports';
 import settingsRoutes from './routes/settings';
+import geographyRoutes from './routes/geography';
 import { authMiddleware } from './middleware/auth';
 
 const app = express();
@@ -84,6 +85,7 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/exports', exportRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/geography', geographyRoutes);
 
 // Root route
 app.get('/', (req, res) => {

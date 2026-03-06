@@ -263,6 +263,8 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
             columns: true,
             skip_empty_lines: true,
             trim: true,
+            relax_quotes: true,
+            relax_column_count: true,
         });
 
         if (records.length === 0) {
@@ -270,22 +272,57 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
             return;
         }
 
-        // Group by Team Name
-        const teamsMap = new Map<string, any[]>();
-        const individualMap = new Map<string, any>(); // Fallback for individuals with no team name
+        // Helper to extract a field from a record with multiple possible column names
+        const getField = (record: any, ...keys: string[]): string => {
+            for (const key of keys) {
+                if (record[key] && record[key].trim()) return record[key].trim();
+            }
+            return '';
+        };
+
+        // Helper to build full name
+        const buildName = (record: any): string => {
+            const first = getField(record, 'First Name', 'firstName');
+            const last = getField(record, 'Last Name', 'lastName');
+            return `${first} ${last}`.trim() || getField(record, 'Name') || 'Unknown';
+        };
+
+        // Helper to extract devfolio username from URL
+        const extractDevfolioId = (record: any): string => {
+            const url = getField(record, 'Devfolio', 'devfolio');
+            if (!url) return '';
+            const match = url.match(/devfolio\.co\/@([^\/\s]+)/);
+            return match ? match[1] : url;
+        };
+
+        // Helper to parse themes/tracks
+        const parseThemes = (record: any): string[] => {
+            const tracks = getField(record, 'Project Tracks', 'Project Tracks (With Reason)');
+            if (!tracks || tracks === 'N/A') return [];
+            // Handle JSON-like format: ["track1","track2"] or comma-separated
+            try {
+                const parsed = JSON.parse(tracks.replace(/\"\"/g, '"'));
+                if (Array.isArray(parsed)) return parsed.filter((t: string) => t && t !== 'N/A');
+            } catch { }
+            return tracks.split(',').map((t: string) => t.trim()).filter((t: string) => t && t !== 'N/A');
+        };
+
+        // Group by Team Name (case-insensitive)
+        const teamsMap = new Map<string, { displayName: string; members: any[] }>();
+        const individualMap = new Map<string, any>();
 
         for (const record of records) {
-            // Flexible column names based on standard Devfolio exports
-            const teamName = record['Team Name'] || record['Team'] || record['team_name'] || '';
-            const email = record['Email'] || record['email'] || '';
+            const teamName = getField(record, 'Team Name', 'Team', 'team_name');
+            const email = getField(record, 'Email', 'email');
 
             if (!email) continue; // Skip invalid rows
 
             if (teamName) {
-                if (!teamsMap.has(teamName)) {
-                    teamsMap.set(teamName, []);
+                const normalizedKey = teamName.toLowerCase();
+                if (!teamsMap.has(normalizedKey)) {
+                    teamsMap.set(normalizedKey, { displayName: teamName, members: [] });
                 }
-                teamsMap.get(teamName)!.push(record);
+                teamsMap.get(normalizedKey)!.members.push(record);
             } else {
                 individualMap.set(email, record);
             }
@@ -293,78 +330,102 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
 
         let importedCount = 0;
         let updatedCount = 0;
+        let skippedCount = 0;
 
         // Process teams
-        for (const [teamName, members] of teamsMap.entries()) {
+        for (const [, teamData] of teamsMap.entries()) {
+            const { displayName: teamName, members } = teamData;
             if (members.length === 0) continue;
 
-            // Sort members to put the "owner" or "leader" first if Devfolio has that info
-            // Often there's a Role column: "Team Builder" vs "Team Member"
-            members.sort((a, b) => {
-                const roleA = (a['Role'] || '').toLowerCase();
-                const roleB = (b['Role'] || '').toLowerCase();
-                if (roleA.includes('builder') || roleA.includes('admin') || roleA.includes('leader')) return -1;
-                if (roleB.includes('builder') || roleB.includes('admin') || roleB.includes('leader')) return 1;
-                return 0; // Keep original order otherwise (first row becomes leader)
-            });
-
+            // First person in the group becomes leader (no Role column in this CSV)
             const leaderData = members[0];
-            const leaderName = `${leaderData['First Name'] || leaderData['firstName'] || ''} ${leaderData['Last Name'] || leaderData['lastName'] || ''}`.trim() || leaderData['Name'] || 'Unknown';
-            const leaderEmail = leaderData['Email'] || leaderData['email'] || '';
-            const leaderPhone = leaderData['Phone Number'] || leaderData['Mobile'] || leaderData['phone'] || '';
-            const leaderCollege = leaderData['College/University'] || leaderData['College'] || leaderData['University'] || leaderData['college'] || '';
-            const leaderGender = leaderData['Gender'] || '';
+            const leaderName = buildName(leaderData);
+            const leaderEmail = getField(leaderData, 'Email', 'email');
+            const leaderPhone = getField(leaderData, 'Phone Number', 'Mobile', 'phone');
+            const leaderCollege = getField(leaderData, 'College/University', 'College', 'University', 'college');
+            const leaderGender = getField(leaderData, 'Gender');
+            const leaderBio = getField(leaderData, 'Bio');
+            const leaderCity = getField(leaderData, 'City');
+            const leaderResume = getField(leaderData, 'Resume');
+            const leaderLinkedin = getField(leaderData, 'LinkedIn');
+            const devfolioId = extractDevfolioId(leaderData);
+
+            // Collect themes from all members' Project Tracks
+            const allThemes = new Set<string>();
+            for (const m of members) {
+                for (const t of parseThemes(m)) {
+                    allThemes.add(t);
+                }
+            }
 
             const memberDocs = [];
             for (let i = 1; i < members.length; i++) {
                 const mData = members[i];
-                const mName = `${mData['First Name'] || mData['firstName'] || ''} ${mData['Last Name'] || mData['lastName'] || ''}`.trim() || mData['Name'] || 'Unknown';
                 memberDocs.push({
-                    name: mName,
-                    email: mData['Email'] || mData['email'] || '',
-                    phone: mData['Phone Number'] || mData['Mobile'] || mData['phone'] || '',
-                    college: mData['College/University'] || mData['College'] || mData['University'] || mData['college'] || '',
-                    gender: mData['Gender'] || '',
-                    checkedIn: false
+                    name: buildName(mData),
+                    email: getField(mData, 'Email', 'email'),
+                    phone: getField(mData, 'Phone Number', 'Mobile', 'phone'),
+                    college: getField(mData, 'College/University', 'College', 'University', 'college'),
+                    gender: getField(mData, 'Gender'),
+                    bio: getField(mData, 'Bio'),
+                    city: getField(mData, 'City'),
+                    resume: getField(mData, 'Resume'),
+                    linkedin: getField(mData, 'LinkedIn'),
+                    checkedIn: false,
                 });
             }
 
-            // Check if team exists (by name or leader email)
-            let existingTeam = await Team.findOne({ $or: [{ teamName }, { leaderEmail }] });
+            // Check if team exists (case-insensitive name match or leader email)
+            let existingTeam = await Team.findOne({
+                $or: [
+                    { teamName: { $regex: `^${teamName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
+                    { leaderEmail },
+                ],
+            });
 
             if (existingTeam) {
-                // Update existing team
+                // Update existing team with new data
                 existingTeam.leaderName = leaderName || existingTeam.leaderName;
                 existingTeam.leaderEmail = leaderEmail || existingTeam.leaderEmail;
                 existingTeam.leaderPhone = leaderPhone || existingTeam.leaderPhone;
                 existingTeam.leaderCollege = leaderCollege || existingTeam.leaderCollege;
                 existingTeam.leaderGender = leaderGender || existingTeam.leaderGender;
+                existingTeam.leaderBio = leaderBio || existingTeam.leaderBio;
+                existingTeam.leaderCity = leaderCity || existingTeam.leaderCity;
+                existingTeam.leaderResume = leaderResume || existingTeam.leaderResume;
+                existingTeam.leaderLinkedin = leaderLinkedin || existingTeam.leaderLinkedin;
+                if (devfolioId) existingTeam.devfolioId = devfolioId;
+                if (allThemes.size > 0) existingTeam.themes = Array.from(allThemes);
 
-                // For members, we could sync them but replacing might overwrite custom edits. 
-                // Let's safely update members count if there are missing ones
+                // Safely add only new members (don't overwrite existing edits)
                 for (const newM of memberDocs) {
-                    if (!existingTeam.members.some(m => m.email === newM.email)) {
+                    if (!existingTeam.members.some(m => m.email.toLowerCase() === newM.email.toLowerCase())) {
                         existingTeam.members.push(newM as any);
                     }
                 }
 
-                existingTeam.status = existingTeam.members.length + 1 >= 3 ? 'complete' : 'incomplete'; // Adjust basic status logic
-
+                existingTeam.status = existingTeam.members.length + 1 >= 3 ? 'complete' : 'incomplete';
                 await existingTeam.save();
                 updatedCount++;
             } else {
                 // Create new team
                 const newTeam = new Team({
-                    teamName: teamName,
+                    teamName,
                     status: memberDocs.length + 1 >= 3 ? 'complete' : 'incomplete',
                     leaderName,
                     leaderEmail,
                     leaderPhone,
                     leaderCollege,
                     leaderGender,
-                    leaderType: 'dayScholar', // Default
+                    leaderBio,
+                    leaderCity,
+                    leaderResume,
+                    leaderLinkedin,
+                    leaderType: 'dayScholar',
                     leaderCheckedIn: false,
-                    members: memberDocs
+                    devfolioId,
+                    themes: Array.from(allThemes),
+                    members: memberDocs,
                 });
                 await newTeam.save();
                 importedCount++;
@@ -373,26 +434,39 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
 
         // Process individuals (as solo teams)
         for (const [email, record] of individualMap.entries()) {
-            const name = `${record['First Name'] || ''} ${record['Last Name'] || ''}`.trim() || record['Name'] || 'Unknown';
-            const phone = record['Phone Number'] || record['Mobile'] || '';
-            const college = record['College/University'] || record['College'] || '';
-            const gender = record['Gender'] || '';
+            const name = buildName(record);
+            const phone = getField(record, 'Phone Number', 'Mobile', 'phone');
+            const college = getField(record, 'College/University', 'College', 'University', 'college');
+            const gender = getField(record, 'Gender');
+            const bio = getField(record, 'Bio');
+            const city = getField(record, 'City');
+            const resume = getField(record, 'Resume');
+            const linkedin = getField(record, 'LinkedIn');
+            const devfolioId = extractDevfolioId(record);
 
-            // Check if user already exists as leader or member
-            const existing = await Team.findOne({ leaderEmail: email });
-            if (existing) continue; // Skip
+            // Check if user already exists as leader
+            const existing = await Team.findOne({ leaderEmail: { $regex: `^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+            if (existing) {
+                skippedCount++;
+                continue;
+            }
 
             const newTeam = new Team({
                 teamName: `${name}'s Team`,
-                status: 'incomplete', // Solo teams are incomplete
+                status: 'incomplete',
                 leaderName: name,
                 leaderEmail: email,
                 leaderPhone: phone,
                 leaderCollege: college,
                 leaderGender: gender,
-                leaderType: 'dayScholar', // Default
+                leaderBio: bio,
+                leaderCity: city,
+                leaderResume: resume,
+                leaderLinkedin: linkedin,
+                leaderType: 'dayScholar',
                 leaderCheckedIn: false,
-                members: []
+                devfolioId,
+                members: [],
             });
             await newTeam.save();
             importedCount++;
@@ -402,13 +476,15 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
             action: 'import_devfolio',
             performedBy: req.admin?.username || 'unknown',
             targetType: 'system',
-            details: `Imported ${importedCount} teams and updated ${updatedCount} teams via Devfolio CSV`,
+            details: `Imported ${importedCount} new teams, updated ${updatedCount} teams, skipped ${skippedCount} duplicates via Devfolio CSV (${records.length} total records)`,
         });
 
         res.status(200).json({
             message: 'Devfolio import successful',
+            totalRecords: records.length,
             imported: importedCount,
-            updated: updatedCount
+            updated: updatedCount,
+            skipped: skippedCount,
         });
 
     } catch (error) {

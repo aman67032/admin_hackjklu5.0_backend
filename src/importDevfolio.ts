@@ -122,14 +122,16 @@ async function main() {
         const leaderData = members[0];
         const leaderName = buildName(leaderData);
         const leaderEmail = getField(leaderData, 'Email', 'email');
-        const leaderPhone = getField(leaderData, 'Phone Number', 'Mobile', 'phone');
-        const leaderCollege = getField(leaderData, 'College/University', 'College', 'University', 'college');
+        const leaderPhone = getField(leaderData, 'Phone Number', 'Mobile', 'phone') || 'N/A';
+        const leaderCollege = getField(leaderData, 'College/University', 'College', 'University', 'college') || 'Unknown';
         const leaderGender = getField(leaderData, 'Gender');
         const leaderBio = getField(leaderData, 'Bio');
         const leaderCity = getField(leaderData, 'City');
         const leaderResume = getField(leaderData, 'Resume');
         const leaderLinkedin = getField(leaderData, 'LinkedIn');
-        const devfolioId = extractDevfolioId(leaderData);
+        const devfolioProfile = extractDevfolioId(leaderData);
+        const leaderStage = getField(leaderData, 'Stage', 'stage').toLowerCase();
+        const leaderIsRsvp = leaderStage === 'rsvp' || leaderStage === 'rsvped';
 
         // Collect themes from all members
         const allThemes = new Set<string>();
@@ -140,21 +142,34 @@ async function main() {
         }
 
         const memberDocs = [];
+        let allMembersRsvp = true;
+
         for (let i = 1; i < members.length; i++) {
             const mData = members[i];
+            const mStage = getField(mData, 'Stage', 'stage').toLowerCase();
+            const mIsRsvp = mStage === 'rsvp' || mStage === 'rsvped';
+            if (!mIsRsvp) allMembersRsvp = false;
+
             memberDocs.push({
                 name: buildName(mData),
                 email: getField(mData, 'Email', 'email'),
-                phone: getField(mData, 'Phone Number', 'Mobile', 'phone'),
-                college: getField(mData, 'College/University', 'College', 'University', 'college'),
+                phone: getField(mData, 'Phone Number', 'Mobile', 'phone') || 'N/A',
+                college: getField(mData, 'College/University', 'College', 'University', 'college') || 'Unknown',
+                batch: '',
+                course: '',
                 gender: getField(mData, 'Gender'),
                 bio: getField(mData, 'Bio'),
                 city: getField(mData, 'City'),
                 resume: getField(mData, 'Resume'),
                 linkedin: getField(mData, 'LinkedIn'),
+                devfolioProfile: extractDevfolioId(mData),
+                messFood: false,
                 checkedIn: false,
+                isRsvp: mIsRsvp,
             });
         }
+
+        const teamFullyRsvp = leaderIsRsvp && allMembersRsvp;
 
         // Check if team already exists
         let existingTeam = await Team.findOne({
@@ -167,18 +182,28 @@ async function main() {
         if (existingTeam) {
             existingTeam.leaderName = leaderName || existingTeam.leaderName;
             existingTeam.leaderEmail = leaderEmail || existingTeam.leaderEmail;
-            existingTeam.leaderPhone = leaderPhone || existingTeam.leaderPhone;
-            existingTeam.leaderCollege = leaderCollege || existingTeam.leaderCollege;
+            existingTeam.leaderPhone = leaderPhone !== 'N/A' ? leaderPhone : existingTeam.leaderPhone;
+            existingTeam.leaderCollege = leaderCollege !== 'Unknown' ? leaderCollege : existingTeam.leaderCollege;
             existingTeam.leaderGender = leaderGender || existingTeam.leaderGender;
             existingTeam.leaderBio = leaderBio || existingTeam.leaderBio;
             existingTeam.leaderCity = leaderCity || existingTeam.leaderCity;
             existingTeam.leaderResume = leaderResume || existingTeam.leaderResume;
             existingTeam.leaderLinkedin = leaderLinkedin || existingTeam.leaderLinkedin;
-            if (devfolioId) existingTeam.devfolioId = devfolioId;
+            // Update RSVP status for leader
+            (existingTeam as any).leaderIsRsvp = leaderIsRsvp;
+            (existingTeam as any).teamFullyRsvp = teamFullyRsvp;
+
+            if (devfolioProfile) existingTeam.devfolioProfile = devfolioProfile;
             if (allThemes.size > 0) existingTeam.themes = Array.from(allThemes);
 
+            // Update existing members or add new ones
             for (const newM of memberDocs) {
-                if (!existingTeam.members.some(m => m.email.toLowerCase() === newM.email.toLowerCase())) {
+                const existingMemberIndex = existingTeam.members.findIndex((m: any) => m.email.toLowerCase() === newM.email.toLowerCase());
+                if (existingMemberIndex >= 0) {
+                    // Update RSVP status for existing member
+                    (existingTeam.members[existingMemberIndex] as any).isRsvp = newM.isRsvp;
+                    if (newM.devfolioProfile) (existingTeam.members[existingMemberIndex] as any).devfolioProfile = newM.devfolioProfile;
+                } else {
                     existingTeam.members.push(newM as any);
                 }
             }
@@ -194,14 +219,18 @@ async function main() {
                 leaderEmail,
                 leaderPhone,
                 leaderCollege,
+                leaderBatch: '',
+                leaderCourse: '',
+                leaderMessFood: false,
                 leaderGender,
                 leaderBio,
                 leaderCity,
                 leaderResume,
                 leaderLinkedin,
-                leaderType: 'dayScholar',
                 leaderCheckedIn: false,
-                devfolioId,
+                leaderIsRsvp,
+                teamFullyRsvp,
+                devfolioProfile,
                 themes: Array.from(allThemes),
                 members: memberDocs,
             });
@@ -214,20 +243,45 @@ async function main() {
 
     for (const [email, record] of individualMap.entries()) {
         const name = buildName(record);
-        const phone = getField(record, 'Phone Number', 'Mobile', 'phone');
-        const college = getField(record, 'College/University', 'College', 'University', 'college');
+        const phone = getField(record, 'Phone Number', 'Mobile', 'phone') || 'N/A';
+        const college = getField(record, 'College/University', 'College', 'University', 'college') || 'Unknown';
         const gender = getField(record, 'Gender');
         const bio = getField(record, 'Bio');
         const city = getField(record, 'City');
         const resume = getField(record, 'Resume');
         const linkedin = getField(record, 'LinkedIn');
-        const devfolioId = extractDevfolioId(record);
+        const devfolioProfile = extractDevfolioId(record);
+        const stage = getField(record, 'Stage', 'stage').toLowerCase();
+        const isRsvp = stage === 'rsvp' || stage === 'rsvped';
 
         const existing = await Team.findOne({
             leaderEmail: { $regex: `^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
         });
         if (existing) {
-            skippedCount++;
+            existing.leaderName = name || existing.leaderName;
+            existing.leaderPhone = phone !== 'N/A' ? phone : existing.leaderPhone;
+            existing.leaderCollege = college !== 'Unknown' ? college : existing.leaderCollege;
+            existing.leaderGender = gender || existing.leaderGender;
+            existing.leaderBio = bio || existing.leaderBio;
+            existing.leaderCity = city || existing.leaderCity;
+            existing.leaderResume = resume || existing.leaderResume;
+            existing.leaderLinkedin = linkedin || existing.leaderLinkedin;
+            if (devfolioProfile) existing.devfolioProfile = devfolioProfile;
+            (existing as any).leaderIsRsvp = isRsvp;
+
+            // For solo teams without members, if leader is RSVP, then team is fully rsvp
+            if (existing.members.length === 0) {
+                (existing as any).teamFullyRsvp = isRsvp;
+            } else {
+                let allMembersRsvp = true;
+                for (const member of existing.members) {
+                    if (!(member as any).isRsvp) allMembersRsvp = false;
+                }
+                (existing as any).teamFullyRsvp = isRsvp && allMembersRsvp;
+            }
+
+            await existing.save();
+            updatedCount++;
             continue;
         }
 
@@ -238,14 +292,18 @@ async function main() {
             leaderEmail: email,
             leaderPhone: phone,
             leaderCollege: college,
+            leaderBatch: '',
+            leaderCourse: '',
+            leaderMessFood: false,
             leaderGender: gender,
             leaderBio: bio,
             leaderCity: city,
             leaderResume: resume,
             leaderLinkedin: linkedin,
-            leaderType: 'dayScholar',
             leaderCheckedIn: false,
-            devfolioId,
+            leaderIsRsvp: isRsvp,
+            teamFullyRsvp: isRsvp,
+            devfolioProfile,
             members: [],
         });
         await newTeam.save();

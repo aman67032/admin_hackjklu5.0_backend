@@ -7,7 +7,6 @@ export interface IMember {
     college: string;
     batch: string;
     course: string;
-    memberType: 'hosteller' | 'dayScholar';
     messFood: boolean;
     gender?: string;
     bio?: string;
@@ -18,8 +17,10 @@ export interface IMember {
     resume?: string;
     github?: string;
     linkedin?: string;
+    devfolioProfile?: string;
     checkedIn: boolean;
     checkedInAt?: Date;
+    isRsvp?: boolean;
 }
 
 export interface ITeam extends Document {
@@ -35,7 +36,6 @@ export interface ITeam extends Document {
     leaderCollege: string;
     leaderBatch: string;
     leaderCourse: string;
-    leaderType: 'hosteller' | 'dayScholar';
     leaderMessFood: boolean;
     leaderGender?: string;
     leaderBio?: string;
@@ -48,6 +48,8 @@ export interface ITeam extends Document {
     leaderLinkedin?: string;
     leaderCheckedIn: boolean;
     leaderCheckedInAt?: Date;
+    leaderIsRsvp?: boolean;
+    teamFullyRsvp?: boolean;
 
     // Team Metadata
     themes?: string[];
@@ -56,7 +58,7 @@ export interface ITeam extends Document {
     members: IMember[];
 
     // Devfolio reference
-    devfolioId?: string;
+    devfolioProfile?: string;
 
     createdAt: Date;
     updatedAt: Date;
@@ -69,7 +71,6 @@ const MemberSchema = new Schema<IMember>({
     college: { type: String, default: '' },
     batch: { type: String, default: '' },
     course: { type: String, default: '' },
-    memberType: { type: String, enum: ['hosteller', 'dayScholar'], default: 'dayScholar' },
     messFood: { type: Boolean, default: false },
     gender: { type: String },
     bio: { type: String },
@@ -80,8 +81,10 @@ const MemberSchema = new Schema<IMember>({
     resume: { type: String },
     github: { type: String },
     linkedin: { type: String },
+    devfolioProfile: { type: String },
     checkedIn: { type: Boolean, default: false },
     checkedInAt: { type: Date },
+    isRsvp: { type: Boolean, default: false },
 });
 
 const TeamSchema = new Schema<ITeam>({
@@ -96,7 +99,6 @@ const TeamSchema = new Schema<ITeam>({
     leaderCollege: { type: String, default: '' },
     leaderBatch: { type: String, default: '' },
     leaderCourse: { type: String, default: '' },
-    leaderType: { type: String, enum: ['hosteller', 'dayScholar'], default: 'dayScholar' },
     leaderMessFood: { type: Boolean, default: false },
     leaderGender: { type: String },
     leaderBio: { type: String },
@@ -109,12 +111,14 @@ const TeamSchema = new Schema<ITeam>({
     leaderLinkedin: { type: String },
     leaderCheckedIn: { type: Boolean, default: false },
     leaderCheckedInAt: { type: Date },
+    leaderIsRsvp: { type: Boolean, default: false },
+    teamFullyRsvp: { type: Boolean, default: false },
 
     themes: [{ type: String }],
 
     members: [MemberSchema],
 
-    devfolioId: { type: String },
+    devfolioProfile: { type: String },
 }, {
     timestamps: true,
 });
@@ -126,4 +130,4 @@ TeamSchema.index({ leaderCourse: 1 });
 TeamSchema.index({ status: 1 });
 TeamSchema.index({ leaderCheckedIn: 1 });
 
-export default mongoose.model<ITeam>('Team', TeamSchema);
+export default mongoose.models.Team || mongoose.model<ITeam>('Team', TeamSchema);

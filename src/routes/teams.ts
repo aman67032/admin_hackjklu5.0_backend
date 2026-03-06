@@ -16,11 +16,10 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const {
             search,
-            batch,
-            course,
+            city,
+            college,
             status,
             checkedIn,
-            memberType,
             page = '1',
             limit = '50',
         } = req.query;
@@ -37,11 +36,22 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             ];
         }
 
-        if (batch) filter.leaderBatch = batch;
-        if (course) filter.leaderCourse = course;
+        if (city) {
+            filter.$or = [
+                ...(filter.$or || []),
+                { leaderCity: { $regex: city, $options: 'i' } },
+                { 'members.city': { $regex: city, $options: 'i' } },
+            ];
+        }
+        if (college) {
+            filter.$or = [
+                ...(filter.$or || []),
+                { leaderCollege: { $regex: college, $options: 'i' } },
+                { 'members.college': { $regex: college, $options: 'i' } },
+            ];
+        }
         if (status) filter.status = status;
         if (checkedIn !== undefined) filter.leaderCheckedIn = checkedIn === 'true';
-        if (memberType) filter.leaderType = memberType;
 
         const pageNum = parseInt(page as string, 10);
         const limitNum = parseInt(limit as string, 10);
@@ -394,12 +404,12 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
                 existingTeam.leaderCity = leaderCity || existingTeam.leaderCity;
                 existingTeam.leaderResume = leaderResume || existingTeam.leaderResume;
                 existingTeam.leaderLinkedin = leaderLinkedin || existingTeam.leaderLinkedin;
-                if (devfolioId) existingTeam.devfolioId = devfolioId;
+                if (devfolioId) existingTeam.devfolioProfile = devfolioId;
                 if (allThemes.size > 0) existingTeam.themes = Array.from(allThemes);
 
                 // Safely add only new members (don't overwrite existing edits)
                 for (const newM of memberDocs) {
-                    if (!existingTeam.members.some(m => m.email.toLowerCase() === newM.email.toLowerCase())) {
+                    if (!existingTeam.members.some((m: any) => m.email.toLowerCase() === newM.email.toLowerCase())) {
                         existingTeam.members.push(newM as any);
                     }
                 }
@@ -416,14 +426,16 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
                     leaderEmail,
                     leaderPhone,
                     leaderCollege,
+                    leaderBatch: '',
+                    leaderCourse: '',
+                    leaderMessFood: false,
                     leaderGender,
                     leaderBio,
                     leaderCity,
                     leaderResume,
                     leaderLinkedin,
-                    leaderType: 'dayScholar',
                     leaderCheckedIn: false,
-                    devfolioId,
+                    devfolioProfile: devfolioId,
                     themes: Array.from(allThemes),
                     members: memberDocs,
                 });

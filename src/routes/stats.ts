@@ -18,7 +18,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             Team.countDocuments(),
             Team.countDocuments({ status: 'complete' }),
             Team.countDocuments({ status: 'incomplete' }),
-            Team.find().select('leaderBatch leaderCourse leaderType leaderMessFood leaderCheckedIn members'),
+            Team.find().select('leaderBatch leaderCourse leaderMessFood leaderCheckedIn members'),
         ]);
 
         // Calculate participant counts
@@ -26,8 +26,6 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         let checkedInCount = 0;
         const batchBreakdown: Record<string, number> = {};
         const courseBreakdown: Record<string, number> = {};
-        let hostellerCount = 0;
-        let dayScholarCount = 0;
         let messFoodCount = 0;
 
         allTeams.forEach(team => {
@@ -41,13 +39,10 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             const leaderCourse = team.leaderCourse || 'Unknown';
             courseBreakdown[leaderCourse] = (courseBreakdown[leaderCourse] || 0) + 1;
 
-            if (team.leaderType === 'hosteller') hostellerCount++;
-            else dayScholarCount++;
-
             if (team.leaderMessFood) messFoodCount++;
 
             // Count members
-            team.members.forEach(member => {
+            team.members.forEach((member: any) => {
                 totalParticipants++;
                 if (member.checkedIn) checkedInCount++;
 
@@ -56,9 +51,6 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
 
                 const memberCourse = member.course || 'Unknown';
                 courseBreakdown[memberCourse] = (courseBreakdown[memberCourse] || 0) + 1;
-
-                if (member.memberType === 'hosteller') hostellerCount++;
-                else dayScholarCount++;
 
                 if (member.messFood) messFoodCount++;
             });
@@ -77,10 +69,6 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             },
             batchBreakdown,
             courseBreakdown,
-            typeBreakdown: {
-                hosteller: hostellerCount,
-                dayScholar: dayScholarCount,
-            },
             messFoodCount,
         });
     } catch (error) {

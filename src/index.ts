@@ -1,4 +1,6 @@
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -20,6 +22,8 @@ import exportRoutes from './routes/exports';
 import settingsRoutes from './routes/settings';
 import geographyRoutes from './routes/geography';
 import mapZonesRoutes from './routes/mapZones';
+import participantAuthRoutes from './routes/participantAuth';
+import participantAdminRoutes from './routes/participantAdmin';
 import { authMiddleware } from './middleware/auth';
 
 const app = express();
@@ -60,6 +64,23 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: allowedOrigins,
+        methods: ["GET", "POST"],
+        credentials: true
+    }
+});
+app.set('io', io);
+
+io.on('connection', (socket) => {
+    // Basic connection handling
+    socket.on('join_admin', () => {
+        socket.join('admin_room');
+    });
+});
+
 // Connect to MongoDB
 const connectDB = async () => {
     try {
@@ -88,6 +109,8 @@ app.use('/api/exports', exportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/geography', geographyRoutes);
 app.use('/api/map-zones', mapZonesRoutes);
+app.use('/api/participantAuth', participantAuthRoutes);
+app.use('/api/participantAdmin', participantAdminRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -116,8 +139,8 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     // We only connect here explicitly for local dev to see the initial console log
     connectDB().then(() => {
-        app.listen(PORT, () => {
-            console.log(`🏛️  HackJKLU 5.0 Admin API running on port ${PORT}`);
+        httpServer.listen(PORT, () => {
+            console.log(`🏛️  HackJKLU 5.0 Admin Server (with Sockets) running on port ${PORT}`);
         });
     });
 }

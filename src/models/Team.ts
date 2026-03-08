@@ -21,6 +21,14 @@ export interface IMember {
     checkedIn: boolean;
     checkedInAt?: Date;
     isRsvp?: boolean;
+    passwordHash?: string;
+    passkey?: string;
+    lastLocation?: {
+        lat: number;
+        lng: number;
+        timestamp: Date;
+    };
+    restrictedAreaEntryTime?: Date;
 }
 
 export interface ITeam extends Document {
@@ -50,6 +58,15 @@ export interface ITeam extends Document {
     leaderCheckedInAt?: Date;
     leaderIsRsvp?: boolean;
     teamFullyRsvp?: boolean;
+    leaderPasswordHash?: string;
+    leaderPasskey?: string;
+    leaderLastLocation?: {
+        lat: number;
+        lng: number;
+        timestamp: Date;
+    };
+    leaderRestrictedAreaEntryTime?: Date;
+    tracePassDetected?: boolean;
 
     // Team Metadata
     themes?: string[];
@@ -85,6 +102,14 @@ const MemberSchema = new Schema<IMember>({
     checkedIn: { type: Boolean, default: false },
     checkedInAt: { type: Date },
     isRsvp: { type: Boolean, default: false },
+    passwordHash: { type: String },
+    passkey: { type: String },
+    lastLocation: {
+        lat: { type: Number },
+        lng: { type: Number },
+        timestamp: { type: Date }
+    },
+    restrictedAreaEntryTime: { type: Date },
 });
 
 const TeamSchema = new Schema<ITeam>({
@@ -113,6 +138,15 @@ const TeamSchema = new Schema<ITeam>({
     leaderCheckedInAt: { type: Date },
     leaderIsRsvp: { type: Boolean, default: false },
     teamFullyRsvp: { type: Boolean, default: false },
+    leaderPasswordHash: { type: String },
+    leaderPasskey: { type: String },
+    leaderLastLocation: {
+        lat: { type: Number },
+        lng: { type: Number },
+        timestamp: { type: Date }
+    },
+    leaderRestrictedAreaEntryTime: { type: Date },
+    tracePassDetected: { type: Boolean, default: false },
 
     themes: [{ type: String }],
 

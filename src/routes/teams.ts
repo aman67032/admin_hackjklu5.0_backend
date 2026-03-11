@@ -111,21 +111,6 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
     }
 });
 
-// GET /api/teams/:id — single team
-router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
-    try {
-        const team = await Team.findById(req.params.id);
-        if (!team) {
-            res.status(404).json({ error: 'Team not found' });
-            return;
-        }
-        res.json(team);
-    } catch (error) {
-        console.error('Get team error:', error);
-        res.status(500).json({ error: 'Server error.' });
-    }
-});
-
 // GET /api/teams/metadata — get unique cities and colleges for filters
 router.get('/metadata', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
@@ -164,6 +149,21 @@ router.get('/metadata', async (req: AuthRequest, res: Response): Promise<void> =
     } catch (error: any) {
         console.error('Get metadata error:', error);
         res.status(500).json({ error: 'Server error: ' + error.message });
+    }
+});
+
+// GET /api/teams/:id — single team
+router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const team = await Team.findById(req.params.id);
+        if (!team) {
+            res.status(404).json({ error: 'Team not found' });
+            return;
+        }
+        res.json(team);
+    } catch (error) {
+        console.error('Get team error:', error);
+        res.status(500).json({ error: 'Server error.' });
     }
 });
 

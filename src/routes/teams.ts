@@ -105,9 +105,9 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
                 pages: Math.ceil(total / limitNum),
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Get teams error:', error);
-        res.status(500).json({ error: 'Server error.' });
+        res.status(500).json({ error: 'Server error: ' + error.message });
     }
 });
 
@@ -161,9 +161,9 @@ router.get('/metadata', async (req: AuthRequest, res: Response): Promise<void> =
             colleges: colleges.map(c => c._id),
             sizeCounts
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Get metadata error:', error);
-        res.status(500).json({ error: 'Server error.' });
+        res.status(500).json({ error: 'Server error: ' + error.message });
     }
 });
 

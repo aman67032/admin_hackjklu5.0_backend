@@ -13,11 +13,13 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             totalTeams,
             completeTeams,
             incompleteTeams,
+            checkedInTeams,
             allTeams,
         ] = await Promise.all([
             Team.countDocuments(),
             Team.countDocuments({ status: 'complete' }),
             Team.countDocuments({ status: 'incomplete' }),
+            Team.countDocuments({ checkedIn: true }),
             Team.find().select('leaderBatch leaderCourse leaderMessFood checkedIn members'),
         ]);
 
@@ -61,6 +63,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
                 total: totalTeams,
                 complete: completeTeams,
                 incomplete: incompleteTeams,
+                checkedIn: checkedInTeams,
             },
             participants: {
                 total: totalParticipants,

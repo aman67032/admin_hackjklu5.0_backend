@@ -37,18 +37,37 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         }
 
         if (city) {
-            filter.$or = [
-                ...(filter.$or || []),
-                { leaderCity: { $regex: city, $options: 'i' } },
-                { 'members.city': { $regex: city, $options: 'i' } },
-            ];
+            const cityFilter = {
+                $or: [
+                    { leaderCity: { $regex: city, $options: 'i' } },
+                    { 'members.city': { $regex: city, $options: 'i' } },
+                ]
+            };
+            if (filter.$and) filter.$and.push(cityFilter);
+            else if (filter.$or) {
+                const searchOR = { $or: filter.$or };
+                delete filter.$or;
+                filter.$and = [searchOR, cityFilter];
+            } else {
+                filter.$or = cityFilter.$or;
+            }
         }
+
         if (college) {
-            filter.$or = [
-                ...(filter.$or || []),
-                { leaderCollege: { $regex: college, $options: 'i' } },
-                { 'members.college': { $regex: college, $options: 'i' } },
-            ];
+            const collegeFilter = {
+                $or: [
+                    { leaderCollege: { $regex: college, $options: 'i' } },
+                    { 'members.college': { $regex: college, $options: 'i' } },
+                ]
+            };
+            if (filter.$and) filter.$and.push(collegeFilter);
+            else if (filter.$or) {
+                const existingOR = { $or: filter.$or };
+                delete filter.$or;
+                filter.$and = [existingOR, collegeFilter];
+            } else {
+                filter.$or = collegeFilter.$or;
+            }
         }
         if (status) filter.status = status;
         if (checkedIn !== undefined) filter.checkedIn = checkedIn === 'true';

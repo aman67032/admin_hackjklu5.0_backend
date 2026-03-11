@@ -10,13 +10,15 @@ router.use(authMiddleware);
 // GET /api/exports/teams — export teams as CSV
 router.get('/teams', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { batch, course, status, checkedIn } = req.query;
+        const { batch, course, status, checkedIn, city, college } = req.query;
 
         const filter: any = {};
         if (batch) filter.leaderBatch = batch;
         if (course) filter.leaderCourse = course;
         if (status) filter.status = status;
         if (checkedIn !== undefined) filter.checkedIn = checkedIn === 'true';
+        if (city) filter.leaderCity = city;
+        if (college) filter.leaderCollege = college;
 
         const teams = await Team.find(filter).sort({ teamNumber: 1, createdAt: -1 });
 
@@ -71,7 +73,7 @@ router.get('/teams', async (req: AuthRequest, res: Response): Promise<void> => {
 // GET /api/exports/participants — export individual participants as CSV
 router.get('/participants', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { batch, course, checkedIn, messFood } = req.query;
+        const { batch, course, checkedIn, messFood, city, college } = req.query;
 
         const teams = await Team.find().sort({ teamNumber: 1, createdAt: -1 });
 
@@ -161,6 +163,8 @@ router.get('/participants', async (req: AuthRequest, res: Response): Promise<voi
         if (course) filtered = filtered.filter(p => p.course === course);
         if (checkedIn !== undefined) filtered = filtered.filter(p => p.checkedIn === String(checkedIn === 'true'));
         if (messFood !== undefined) filtered = filtered.filter(p => p.messFood === String(messFood === 'true'));
+        if (city) filtered = filtered.filter(p => p.city === city);
+        if (college) filtered = filtered.filter(p => p.college === college);
 
         const headers = ['Team Name', 'Team Number', 'Name', 'Email', 'Phone', 'College', 'Batch', 'Course', 'Devfolio', 'Mess Food', 'Checked In', 'Role', 'Gender', 'City', 'Bio', 'Education', 'Domain Expertise', 'Skills', 'GitHub', 'LinkedIn', 'Resume'];
         const rows = filtered.map(p => {

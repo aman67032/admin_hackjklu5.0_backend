@@ -25,52 +25,57 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         } = req.query;
 
         const filter: any = {};
+        const andConditions: any[] = [];
 
         if (search) {
-            filter.$or = [
-                { teamName: { $regex: search, $options: 'i' } },
-                { leaderName: { $regex: search, $options: 'i' } },
-                { leaderEmail: { $regex: search, $options: 'i' } },
-                { 'members.name': { $regex: search, $options: 'i' } },
-                { 'members.email': { $regex: search, $options: 'i' } },
+            const searchRegex = { $regex: search, $options: 'i' };
+            const searchConditions: any[] = [
+                { teamName: searchRegex },
+                { leaderName: searchRegex },
+                { leaderEmail: searchRegex },
+                { leaderCity: searchRegex },
+                { leaderCollege: searchRegex },
+                { roomNumber: searchRegex },
+                { domain: searchRegex },
+                { 'members.name': searchRegex },
+                { 'members.email': searchRegex },
+                { 'members.city': searchRegex },
+                { 'members.college': searchRegex },
             ];
+
+            // If search is a number, also search by teamNumber
+            const searchNum = parseInt(search as string, 10);
+            if (!isNaN(searchNum)) {
+                searchConditions.push({ teamNumber: searchNum });
+            }
+
+            andConditions.push({ $or: searchConditions });
         }
 
         if (city) {
-            const cityFilter = {
+            andConditions.push({
                 $or: [
                     { leaderCity: { $regex: city, $options: 'i' } },
                     { 'members.city': { $regex: city, $options: 'i' } },
                 ]
-            };
-            if (filter.$and) filter.$and.push(cityFilter);
-            else if (filter.$or) {
-                const searchOR = { $or: filter.$or };
-                delete filter.$or;
-                filter.$and = [searchOR, cityFilter];
-            } else {
-                filter.$or = cityFilter.$or;
-            }
+            });
         }
 
         if (college) {
-            const collegeFilter = {
+            andConditions.push({
                 $or: [
                     { leaderCollege: { $regex: college, $options: 'i' } },
                     { 'members.college': { $regex: college, $options: 'i' } },
                 ]
-            };
-            if (filter.$and) filter.$and.push(collegeFilter);
-            else if (filter.$or) {
-                const existingOR = { $or: filter.$or };
-                delete filter.$or;
-                filter.$and = [existingOR, collegeFilter];
-            } else {
-                filter.$or = collegeFilter.$or;
-            }
+            });
         }
+
         if (status) filter.status = status;
         if (checkedIn !== undefined) filter.checkedIn = checkedIn === 'true';
+
+        if (andConditions.length > 0) {
+            filter.$and = andConditions;
+        }
 
         const pageNum = parseInt(page as string, 10);
         const limitNum = parseInt(limit as string, 10);
@@ -107,6 +112,36 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
         res.json(team);
     } catch (error) {
         console.error('Get team error:', error);
+        res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// GET /api/teams/metadata — get unique cities and colleges for filters
+router.get('/metadata', async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const [cities, colleges] = await Promise.all([
+            Team.aggregate([
+                { $project: { vals: { $concatArrays: [['$leaderCity'], '$members.city'] } } },
+                { $unwind: '$vals' },
+                { $match: { vals: { $nin: [null, ''] } } },
+                { $group: { _id: '$vals' } },
+                { $sort: { _id: 1 } }
+            ]),
+            Team.aggregate([
+                { $project: { vals: { $concatArrays: [['$leaderCollege'], '$members.college'] } } },
+                { $unwind: '$vals' },
+                { $match: { vals: { $nin: [null, ''] } } },
+                { $group: { _id: '$vals' } },
+                { $sort: { _id: 1 } }
+            ])
+        ]);
+
+        res.json({
+            cities: cities.map(c => c._id),
+            colleges: colleges.map(c => c._id)
+        });
+    } catch (error) {
+        console.error('Get metadata error:', error);
         res.status(500).json({ error: 'Server error.' });
     }
 });

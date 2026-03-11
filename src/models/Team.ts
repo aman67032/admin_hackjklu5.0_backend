@@ -7,14 +7,12 @@ export interface IMember {
     college: string;
     batch: string;
     course: string;
-    messFood: boolean;
     gender?: string;
     bio?: string;
     city?: string;
     education?: string;
     domainExpertise?: string;
     skills?: string[];
-    resume?: string;
     github?: string;
     linkedin?: string;
     devfolioProfile?: string;
@@ -36,14 +34,12 @@ export interface ITeam extends Document {
     leaderCollege: string;
     leaderBatch: string;
     leaderCourse: string;
-    leaderMessFood: boolean;
     leaderGender?: string;
     leaderBio?: string;
     leaderCity?: string;
     leaderEducation?: string;
     leaderDomainExpertise?: string;
     leaderSkills?: string[];
-    leaderResume?: string;
     leaderGithub?: string;
     leaderLinkedin?: string;
     leaderIsRsvp?: boolean;
@@ -71,14 +67,12 @@ const MemberSchema = new Schema<IMember>({
     college: { type: String, default: '' },
     batch: { type: String, default: '' },
     course: { type: String, default: '' },
-    messFood: { type: Boolean, default: false },
     gender: { type: String },
     bio: { type: String },
     city: { type: String },
     education: { type: String },
     domainExpertise: { type: String },
     skills: [{ type: String }],
-    resume: { type: String },
     github: { type: String },
     linkedin: { type: String },
     devfolioProfile: { type: String },
@@ -99,14 +93,12 @@ const TeamSchema = new Schema<ITeam>({
     leaderCollege: { type: String, default: '' },
     leaderBatch: { type: String, default: '' },
     leaderCourse: { type: String, default: '' },
-    leaderMessFood: { type: Boolean, default: false },
     leaderGender: { type: String },
     leaderBio: { type: String },
     leaderCity: { type: String },
     leaderEducation: { type: String },
     leaderDomainExpertise: { type: String },
     leaderSkills: [{ type: String }],
-    leaderResume: { type: String },
     leaderGithub: { type: String },
     leaderLinkedin: { type: String },
     leaderIsRsvp: { type: Boolean, default: false },

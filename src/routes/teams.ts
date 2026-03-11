@@ -446,7 +446,6 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
             const leaderGender = getField(leaderData, 'Gender');
             const leaderBio = getField(leaderData, 'Bio');
             const leaderCity = getField(leaderData, 'City');
-            const leaderResume = getField(leaderData, 'Resume');
             const leaderLinkedin = getField(leaderData, 'LinkedIn');
             const devfolioId = extractDevfolioId(leaderData);
 
@@ -469,7 +468,6 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
                     gender: getField(mData, 'Gender'),
                     bio: getField(mData, 'Bio'),
                     city: getField(mData, 'City'),
-                    resume: getField(mData, 'Resume'),
                     linkedin: getField(mData, 'LinkedIn'),
                     checkedIn: false,
                 });
@@ -492,7 +490,6 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
                 existingTeam.leaderGender = leaderGender || existingTeam.leaderGender;
                 existingTeam.leaderBio = leaderBio || existingTeam.leaderBio;
                 existingTeam.leaderCity = leaderCity || existingTeam.leaderCity;
-                existingTeam.leaderResume = leaderResume || existingTeam.leaderResume;
                 existingTeam.leaderLinkedin = leaderLinkedin || existingTeam.leaderLinkedin;
                 if (devfolioId) existingTeam.devfolioProfile = devfolioId;
                 if (allThemes.size > 0) existingTeam.themes = Array.from(allThemes);
@@ -518,11 +515,9 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
                     leaderCollege,
                     leaderBatch: '',
                     leaderCourse: '',
-                    leaderMessFood: false,
                     leaderGender,
                     leaderBio,
                     leaderCity,
-                    leaderResume,
                     leaderLinkedin,
                     checkedIn: false,
                     devfolioProfile: devfolioId,
@@ -542,7 +537,6 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
             const gender = getField(record, 'Gender');
             const bio = getField(record, 'Bio');
             const city = getField(record, 'City');
-            const resume = getField(record, 'Resume');
             const linkedin = getField(record, 'LinkedIn');
             const devfolioId = extractDevfolioId(record);
 
@@ -563,9 +557,7 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
                 leaderGender: gender,
                 leaderBio: bio,
                 leaderCity: city,
-                leaderResume: resume,
                 leaderLinkedin: linkedin,
-                leaderType: 'dayScholar',
                 checkedIn: false,
                 devfolioId,
                 members: [],

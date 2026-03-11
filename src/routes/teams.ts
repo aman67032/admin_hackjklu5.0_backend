@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import Team from '../models/Team';
+import Settings from '../models/Settings';
 import ActivityLog from '../models/ActivityLog';
 import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth';
 import multer from 'multer';
@@ -146,9 +147,17 @@ router.get('/metadata', async (req: AuthRequest, res: Response): Promise<void> =
     }
 });
 
-// PUT /api/teams/:id — update team
 router.put('/:id', requireRole('superadmin', 'volunteer'), async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+        // Enforce Team Modification Lock
+        if (req.admin?.role !== 'superadmin') {
+            const settings = await Settings.findOne();
+            if (settings?.teamModificationLocked) {
+                res.status(403).json({ error: 'Team modification is currently locked by central command.' });
+                return;
+            }
+        }
+
         const team = await Team.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
         if (!team) {
             res.status(404).json({ error: 'Team not found' });
@@ -179,6 +188,15 @@ router.put('/:id', requireRole('superadmin', 'volunteer'), async (req: AuthReque
 // POST /api/teams/:id/checkin — check in entire team
 router.post('/:id/checkin', requireRole('superadmin', 'volunteer'), async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+        // Enforce Check-in Open setting
+        if (req.admin?.role !== 'superadmin') {
+            const settings = await Settings.findOne();
+            if (!settings?.checkinOpen) {
+                res.status(403).json({ error: 'Check-in is currently closed by central command.' });
+                return;
+            }
+        }
+
         const team = await Team.findById(req.params.id);
 
         if (!team) {

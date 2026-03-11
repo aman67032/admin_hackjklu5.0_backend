@@ -29,9 +29,21 @@ router.put('/', requireRole('superadmin'), async (req: AuthRequest, res: Respons
             settings = await Settings.create({});
         }
 
-        const { registrationLocked, maxTeamSize, minTeamSize } = req.body;
+        const { 
+            registrationLocked, 
+            teamModificationLocked, 
+            leaderboardVisible, 
+            submissionLocked, 
+            checkinOpen,
+            maxTeamSize, 
+            minTeamSize 
+        } = req.body;
 
         if (registrationLocked !== undefined) settings.registrationLocked = registrationLocked;
+        if (teamModificationLocked !== undefined) settings.teamModificationLocked = teamModificationLocked;
+        if (leaderboardVisible !== undefined) settings.leaderboardVisible = leaderboardVisible;
+        if (submissionLocked !== undefined) settings.submissionLocked = submissionLocked;
+        if (checkinOpen !== undefined) settings.checkinOpen = checkinOpen;
         if (maxTeamSize !== undefined) settings.maxTeamSize = maxTeamSize;
         if (minTeamSize !== undefined) settings.minTeamSize = minTeamSize;
 

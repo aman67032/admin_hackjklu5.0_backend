@@ -79,7 +79,10 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             const sizeNum = parseInt(teamSize as string, 10);
             if (!isNaN(sizeNum) && sizeNum >= 1 && sizeNum <= 5) {
                 // team size = 1 leader + N members. So members array length = sizeNum - 1
-                filter.members = { $size: sizeNum - 1 };
+                // Use $expr to avoid conflict with search conditions on members.name etc.
+                andConditions.push({
+                    $expr: { $eq: [{ $size: { $ifNull: ['$members', []] } }, sizeNum - 1] }
+                });
             }
         }
 

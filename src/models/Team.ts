@@ -35,6 +35,8 @@ export interface ITeam extends Document {
     teamName: string;
     teamNumber?: number;
     roomNumber?: string;
+    extensionBoard?: boolean;
+    domain?: string;
     status: 'complete' | 'incomplete' | 'disqualified';
 
     // Leader info
@@ -116,6 +118,8 @@ const TeamSchema = new Schema<ITeam>({
     teamName: { type: String, required: true },
     teamNumber: { type: Number },
     roomNumber: { type: String },
+    extensionBoard: { type: Boolean, default: false },
+    domain: { type: String },
     status: { type: String, enum: ['complete', 'incomplete', 'disqualified'], default: 'incomplete' },
 
     leaderName: { type: String, required: true },

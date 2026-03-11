@@ -21,6 +21,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             college,
             status,
             checkedIn,
+            teamSize,
             page = '1',
             limit = '50',
         } = req.query;
@@ -74,6 +75,14 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         if (status) filter.status = status;
         if (checkedIn !== undefined) filter.checkedIn = checkedIn === 'true';
 
+        if (teamSize) {
+            const sizeNum = parseInt(teamSize as string, 10);
+            if (!isNaN(sizeNum) && sizeNum >= 2 && sizeNum <= 5) {
+                // team size = 1 leader + N members. So members array length = sizeNum - 1
+                filter.members = { $size: sizeNum - 1 };
+            }
+        }
+
         if (andConditions.length > 0) {
             filter.$and = andConditions;
         }
@@ -120,7 +129,7 @@ router.get('/:id', async (req: AuthRequest, res: Response): Promise<void> => {
 // GET /api/teams/metadata — get unique cities and colleges for filters
 router.get('/metadata', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const [cities, colleges] = await Promise.all([
+        const [cities, colleges, sizeCountsData] = await Promise.all([
             Team.aggregate([
                 { $project: { vals: { $concatArrays: [['$leaderCity'], '$members.city'] } } },
                 { $unwind: '$vals' },
@@ -134,12 +143,23 @@ router.get('/metadata', async (req: AuthRequest, res: Response): Promise<void> =
                 { $match: { vals: { $nin: [null, ''] } } },
                 { $group: { _id: '$vals' } },
                 { $sort: { _id: 1 } }
+            ]),
+            Team.aggregate([
+                { $project: { size: { $add: [1, { $size: "$members" }] } } },
+                { $group: { _id: "$size", count: { $sum: 1 } } },
+                { $sort: { _id: 1 } }
             ])
         ]);
 
+        const sizeCounts: Record<number, number> = {};
+        sizeCountsData.forEach((item: any) => {
+            sizeCounts[item._id] = item.count;
+        });
+
         res.json({
             cities: cities.map(c => c._id),
-            colleges: colleges.map(c => c._id)
+            colleges: colleges.map(c => c._id),
+            sizeCounts
         });
     } catch (error) {
         console.error('Get metadata error:', error);

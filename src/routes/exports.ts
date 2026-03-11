@@ -10,7 +10,7 @@ router.use(authMiddleware);
 // GET /api/exports/teams — export teams as CSV
 router.get('/teams', async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { batch, course, status, checkedIn, city, college } = req.query;
+        const { batch, course, status, checkedIn, city, college, teamSize } = req.query;
 
         const filter: any = {};
         if (batch) filter.leaderBatch = batch;
@@ -19,6 +19,12 @@ router.get('/teams', async (req: AuthRequest, res: Response): Promise<void> => {
         if (checkedIn !== undefined) filter.checkedIn = checkedIn === 'true';
         if (city) filter.leaderCity = city;
         if (college) filter.leaderCollege = college;
+        if (teamSize) {
+            const sizeNum = parseInt(teamSize as string, 10);
+            if (!isNaN(sizeNum) && sizeNum >= 2 && sizeNum <= 5) {
+                filter.members = { $size: sizeNum - 1 };
+            }
+        }
 
         const teams = await Team.find(filter).sort({ teamNumber: 1, createdAt: -1 });
 

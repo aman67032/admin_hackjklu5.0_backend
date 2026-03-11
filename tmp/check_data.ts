@@ -9,11 +9,14 @@ import Team from '../src/models/Team';
 
 async function check() {
     try {
-        await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/hackjklu5');
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/hackjklu5_admin');
         console.log('Connected to MongoDB');
 
+        const collections = await mongoose.connection.db?.listCollections().toArray();
+        console.log('Collections:', collections?.map(c => c.name));
+
         const teamsCount = await Team.countDocuments();
-        console.log('Total teams:', teamsCount);
+        console.log('Total teams in "teams" collection:', teamsCount);
 
         const badTeams = await Team.find({
             $or: [

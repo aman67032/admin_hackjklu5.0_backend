@@ -31,12 +31,12 @@ router.get('/teams', async (req: AuthRequest, res: Response): Promise<void> => {
         const headers = [
             'Team Name', 'Team Number', 'Room Number', 'Status', 'Themes',
             'Leader Name', 'Leader Email', 'Leader Phone', 'Leader College',
-            'Leader Checked In', 'Leader Gender', 'Leader City', 'Leader Bio', 'Leader Education', 'Leader Domain', 'Leader GitHub', 'Leader LinkedIn',
-            'Member 1 Name', 'Member 1 Email', 'Member 1 Phone', 'Member 1 Checked In', 'Member 1 Gender', 'Member 1 City', 'Member 1 Education', 'Member 1 Domain', 'Member 1 GitHub', 'Member 1 LinkedIn',
-            'Member 2 Name', 'Member 2 Email', 'Member 2 Phone', 'Member 2 Checked In', 'Member 2 Gender', 'Member 2 City', 'Member 2 Education', 'Member 2 Domain', 'Member 2 GitHub', 'Member 2 LinkedIn',
-            'Member 3 Name', 'Member 3 Email', 'Member 3 Phone', 'Member 3 Checked In', 'Member 3 Gender', 'Member 3 City', 'Member 3 Education', 'Member 3 Domain', 'Member 3 GitHub', 'Member 3 LinkedIn',
-            'Member 4 Name', 'Member 4 Email', 'Member 4 Phone', 'Member 4 Checked In', 'Member 4 Gender', 'Member 4 City', 'Member 4 Education', 'Member 4 Domain', 'Member 4 GitHub', 'Member 4 LinkedIn',
-            'Member 5 Name', 'Member 5 Email', 'Member 5 Phone', 'Member 5 Checked In', 'Member 5 Gender', 'Member 5 City', 'Member 5 Education', 'Member 5 Domain', 'Member 5 GitHub', 'Member 5 LinkedIn',
+            'Leader Checked In', 'Leader Gender', 'Leader City', 'Leader Domain', 'Leader GitHub', 'Leader LinkedIn',
+            'Member 1 Name', 'Member 1 Email', 'Member 1 Phone', 'Member 1 Checked In', 'Member 1 Gender', 'Member 1 City', 'Member 1 Domain', 'Member 1 GitHub', 'Member 1 LinkedIn',
+            'Member 2 Name', 'Member 2 Email', 'Member 2 Phone', 'Member 2 Checked In', 'Member 2 Gender', 'Member 2 City', 'Member 2 Domain', 'Member 2 GitHub', 'Member 2 LinkedIn',
+            'Member 3 Name', 'Member 3 Email', 'Member 3 Phone', 'Member 3 Checked In', 'Member 3 Gender', 'Member 3 City', 'Member 3 Domain', 'Member 3 GitHub', 'Member 3 LinkedIn',
+            'Member 4 Name', 'Member 4 Email', 'Member 4 Phone', 'Member 4 Checked In', 'Member 4 Gender', 'Member 4 City', 'Member 4 Domain', 'Member 4 GitHub', 'Member 4 LinkedIn',
+            'Member 5 Name', 'Member 5 Email', 'Member 5 Phone', 'Member 5 Checked In', 'Member 5 Gender', 'Member 5 City', 'Member 5 Domain', 'Member 5 GitHub', 'Member 5 LinkedIn',
         ];
 
         const rows = teams.map((team: any) => {

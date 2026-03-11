@@ -16,7 +16,7 @@ router.get('/teams', async (req: AuthRequest, res: Response): Promise<void> => {
         if (batch) filter.leaderBatch = batch;
         if (course) filter.leaderCourse = course;
         if (status) filter.status = status;
-        if (checkedIn !== undefined) filter.leaderCheckedIn = checkedIn === 'true';
+        if (checkedIn !== undefined) filter.checkedIn = checkedIn === 'true';
 
         const teams = await Team.find(filter).sort({ teamNumber: 1, createdAt: -1 });
 
@@ -34,7 +34,7 @@ router.get('/teams', async (req: AuthRequest, res: Response): Promise<void> => {
             const row: string[] = [
                 team.teamName, String(team.teamNumber || ''), team.roomNumber || '', team.status, (team.themes || []).join('; '),
                 team.leaderName, team.leaderEmail, team.leaderPhone, team.leaderCollege,
-                team.leaderBatch, team.leaderCourse, team.devfolioProfile || '', String(team.leaderMessFood), String(team.leaderCheckedIn),
+                team.leaderBatch, team.leaderCourse, team.devfolioProfile || '', String(team.leaderMessFood), String(team.checkedIn),
                 team.leaderGender || '', team.leaderCity || '', team.leaderBio || '', team.leaderEducation || '', team.leaderDomainExpertise || '', (team.leaderSkills || []).join('; '), team.leaderGithub || '', team.leaderLinkedin || '', team.leaderResume || ''
             ];
 
@@ -114,7 +114,7 @@ router.get('/participants', async (req: AuthRequest, res: Response): Promise<voi
                 course: team.leaderCourse,
                 devfolio: team.devfolioProfile || '',
                 messFood: String(team.leaderMessFood),
-                checkedIn: String(team.leaderCheckedIn),
+                checkedIn: String(team.checkedIn),
                 role: 'Leader',
                 gender: team.leaderGender || '',
                 city: team.leaderCity || '',

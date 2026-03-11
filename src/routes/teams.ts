@@ -51,7 +51,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             ];
         }
         if (status) filter.status = status;
-        if (checkedIn !== undefined) filter.leaderCheckedIn = checkedIn === 'true';
+        if (checkedIn !== undefined) filter.checkedIn = checkedIn === 'true';
 
         const pageNum = parseInt(page as string, 10);
         const limitNum = parseInt(limit as string, 10);
@@ -101,6 +101,12 @@ router.put('/:id', requireRole('superadmin', 'volunteer'), async (req: AuthReque
             return;
         }
 
+        // Emit live update
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('team_updated', team);
+        }
+
         await ActivityLog.create({
             action: 'update_team',
             performedBy: req.admin?.username || 'unknown',
@@ -116,10 +122,9 @@ router.put('/:id', requireRole('superadmin', 'volunteer'), async (req: AuthReque
     }
 });
 
-// POST /api/teams/:id/checkin — check in leader or member
+// POST /api/teams/:id/checkin — check in entire team
 router.post('/:id/checkin', requireRole('superadmin', 'volunteer'), async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { target, memberIndex } = req.body; // target: 'leader' | 'member'
         const team = await Team.findById(req.params.id);
 
         if (!team) {
@@ -127,30 +132,23 @@ router.post('/:id/checkin', requireRole('superadmin', 'volunteer'), async (req: 
             return;
         }
 
-        if (target === 'leader') {
-            team.leaderCheckedIn = !team.leaderCheckedIn;
-            team.leaderCheckedInAt = team.leaderCheckedIn ? new Date() : undefined;
-        } else if (target === 'member' && memberIndex !== undefined) {
-            if (memberIndex < 0 || memberIndex >= team.members.length) {
-                res.status(400).json({ error: 'Invalid member index.' });
-                return;
-            }
-            team.members[memberIndex].checkedIn = !team.members[memberIndex].checkedIn;
-            team.members[memberIndex].checkedInAt = team.members[memberIndex].checkedIn ? new Date() : undefined;
-        } else {
-            res.status(400).json({ error: 'Invalid check-in target.' });
-            return;
-        }
+        team.checkedIn = !team.checkedIn;
+        team.checkedInAt = team.checkedIn ? new Date() : undefined;
 
         await team.save();
 
-        const who = target === 'leader' ? team.leaderName : team.members[memberIndex].name;
+        // Emit live update
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('team_updated', team);
+        }
+
         await ActivityLog.create({
-            action: 'checkin_toggle',
+            action: 'team_checkin_toggle',
             performedBy: req.admin?.username || 'unknown',
-            targetType: 'participant',
+            targetType: 'team',
             targetId: team._id.toString(),
-            details: `Toggled check-in for ${who} in team ${team.teamName}`,
+            details: `Toggled team-wide check-in for ${team.teamName} (${team.checkedIn ? 'IN' : 'OUT'})`,
         });
 
         res.json(team);
@@ -434,7 +432,7 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
                     leaderCity,
                     leaderResume,
                     leaderLinkedin,
-                    leaderCheckedIn: false,
+                    checkedIn: false,
                     devfolioProfile: devfolioId,
                     themes: Array.from(allThemes),
                     members: memberDocs,
@@ -476,7 +474,7 @@ router.post('/import-devfolio', requireRole('superadmin'), upload.single('file')
                 leaderResume: resume,
                 leaderLinkedin: linkedin,
                 leaderType: 'dayScholar',
-                leaderCheckedIn: false,
+                checkedIn: false,
                 devfolioId,
                 members: [],
             });

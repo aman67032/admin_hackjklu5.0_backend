@@ -22,8 +22,6 @@ import exportRoutes from './routes/exports';
 import settingsRoutes from './routes/settings';
 import geographyRoutes from './routes/geography';
 import mapZonesRoutes from './routes/mapZones';
-import participantAuthRoutes from './routes/participantAuth';
-import participantAdminRoutes from './routes/participantAdmin';
 import { authMiddleware } from './middleware/auth';
 
 const app = express();
@@ -109,8 +107,6 @@ app.use('/api/exports', exportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/geography', geographyRoutes);
 app.use('/api/map-zones', mapZonesRoutes);
-app.use('/api/participantAuth', participantAuthRoutes);
-app.use('/api/participantAdmin', participantAdminRoutes);
 
 // Root route
 app.get('/', (req, res) => {

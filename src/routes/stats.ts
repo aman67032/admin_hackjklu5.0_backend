@@ -18,7 +18,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
             Team.countDocuments(),
             Team.countDocuments({ status: 'complete' }),
             Team.countDocuments({ status: 'incomplete' }),
-            Team.find().select('leaderBatch leaderCourse leaderMessFood leaderCheckedIn members'),
+            Team.find().select('leaderBatch leaderCourse leaderMessFood checkedIn members'),
         ]);
 
         // Calculate participant counts
@@ -31,7 +31,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
         allTeams.forEach(team => {
             // Count leader
             totalParticipants++;
-            if (team.leaderCheckedIn) checkedInCount++;
+            if (team.checkedIn) checkedInCount++;
 
             const leaderBatch = team.leaderBatch || 'Unknown';
             batchBreakdown[leaderBatch] = (batchBreakdown[leaderBatch] || 0) + 1;

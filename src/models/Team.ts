@@ -18,17 +18,7 @@ export interface IMember {
     github?: string;
     linkedin?: string;
     devfolioProfile?: string;
-    checkedIn: boolean;
-    checkedInAt?: Date;
     isRsvp?: boolean;
-    passwordHash?: string;
-    passkey?: string;
-    lastLocation?: {
-        lat: number;
-        lng: number;
-        timestamp: Date;
-    };
-    restrictedAreaEntryTime?: Date;
 }
 
 export interface ITeam extends Document {
@@ -56,19 +46,10 @@ export interface ITeam extends Document {
     leaderResume?: string;
     leaderGithub?: string;
     leaderLinkedin?: string;
-    leaderCheckedIn: boolean;
-    leaderCheckedInAt?: Date;
     leaderIsRsvp?: boolean;
     teamFullyRsvp?: boolean;
-    leaderPasswordHash?: string;
-    leaderPasskey?: string;
-    leaderLastLocation?: {
-        lat: number;
-        lng: number;
-        timestamp: Date;
-    };
-    leaderRestrictedAreaEntryTime?: Date;
-    tracePassDetected?: boolean;
+    checkedIn: boolean;
+    checkedInAt?: Date;
 
     // Team Metadata
     themes?: string[];
@@ -101,17 +82,7 @@ const MemberSchema = new Schema<IMember>({
     github: { type: String },
     linkedin: { type: String },
     devfolioProfile: { type: String },
-    checkedIn: { type: Boolean, default: false },
-    checkedInAt: { type: Date },
     isRsvp: { type: Boolean, default: false },
-    passwordHash: { type: String },
-    passkey: { type: String },
-    lastLocation: {
-        lat: { type: Number },
-        lng: { type: Number },
-        timestamp: { type: Date }
-    },
-    restrictedAreaEntryTime: { type: Date },
 });
 
 const TeamSchema = new Schema<ITeam>({
@@ -138,19 +109,10 @@ const TeamSchema = new Schema<ITeam>({
     leaderResume: { type: String },
     leaderGithub: { type: String },
     leaderLinkedin: { type: String },
-    leaderCheckedIn: { type: Boolean, default: false },
-    leaderCheckedInAt: { type: Date },
     leaderIsRsvp: { type: Boolean, default: false },
     teamFullyRsvp: { type: Boolean, default: false },
-    leaderPasswordHash: { type: String },
-    leaderPasskey: { type: String },
-    leaderLastLocation: {
-        lat: { type: Number },
-        lng: { type: Number },
-        timestamp: { type: Date }
-    },
-    leaderRestrictedAreaEntryTime: { type: Date },
-    tracePassDetected: { type: Boolean, default: false },
+    checkedIn: { type: Boolean, default: false },
+    checkedInAt: { type: Date },
 
     themes: [{ type: String }],
 
@@ -166,6 +128,6 @@ TeamSchema.index({ teamName: 'text', leaderName: 'text', leaderEmail: 'text' });
 TeamSchema.index({ leaderBatch: 1 });
 TeamSchema.index({ leaderCourse: 1 });
 TeamSchema.index({ status: 1 });
-TeamSchema.index({ leaderCheckedIn: 1 });
+TeamSchema.index({ checkedIn: 1 });
 
 export default mongoose.models.Team || mongoose.model<ITeam>('Team', TeamSchema);

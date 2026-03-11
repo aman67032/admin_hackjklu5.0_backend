@@ -21,7 +21,7 @@ router.get('/teams', async (req: AuthRequest, res: Response): Promise<void> => {
         if (college) filter.leaderCollege = college;
         if (teamSize) {
             const sizeNum = parseInt(teamSize as string, 10);
-            if (!isNaN(sizeNum) && sizeNum >= 2 && sizeNum <= 5) {
+            if (!isNaN(sizeNum) && sizeNum >= 1 && sizeNum <= 5) {
                 filter.members = { $size: sizeNum - 1 };
             }
         }

@@ -77,7 +77,7 @@ router.get('/', async (req: AuthRequest, res: Response): Promise<void> => {
 
         if (teamSize) {
             const sizeNum = parseInt(teamSize as string, 10);
-            if (!isNaN(sizeNum) && sizeNum >= 2 && sizeNum <= 5) {
+            if (!isNaN(sizeNum) && sizeNum >= 1 && sizeNum <= 5) {
                 // team size = 1 leader + N members. So members array length = sizeNum - 1
                 filter.members = { $size: sizeNum - 1 };
             }
@@ -131,21 +131,21 @@ router.get('/metadata', async (req: AuthRequest, res: Response): Promise<void> =
     try {
         const [cities, colleges, sizeCountsData] = await Promise.all([
             Team.aggregate([
-                { $project: { vals: { $concatArrays: [['$leaderCity'], '$members.city'] } } },
+                { $project: { vals: { $concatArrays: [['$leaderCity'], { $ifNull: ['$members.city', []] }] } } },
                 { $unwind: '$vals' },
                 { $match: { vals: { $nin: [null, ''] } } },
                 { $group: { _id: '$vals' } },
                 { $sort: { _id: 1 } }
             ]),
             Team.aggregate([
-                { $project: { vals: { $concatArrays: [['$leaderCollege'], '$members.college'] } } },
+                { $project: { vals: { $concatArrays: [['$leaderCollege'], { $ifNull: ['$members.college', []] }] } } },
                 { $unwind: '$vals' },
                 { $match: { vals: { $nin: [null, ''] } } },
                 { $group: { _id: '$vals' } },
                 { $sort: { _id: 1 } }
             ]),
             Team.aggregate([
-                { $project: { size: { $add: [1, { $size: "$members" }] } } },
+                { $project: { size: { $add: [1, { $cond: { if: { $isArray: "$members" }, then: { $size: "$members" }, else: 0 } }] } } },
                 { $group: { _id: "$size", count: { $sum: 1 } } },
                 { $sort: { _id: 1 } }
             ])

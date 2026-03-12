@@ -114,6 +114,21 @@ const cityToState: Record<string, string> = {
     'srinagar': 'Jammu & Kashmir', 'jammu': 'Jammu & Kashmir',
     // Ladakh
     'leh': 'Ladakh',
+
+    // Newly Added Unmapped Cities
+    'kurukshetra': 'Haryana',
+    'chhatrapati sambhajinagar': 'Maharashtra',
+    'suratgarh': 'Rajasthan',
+    'khairthal': 'Rajasthan',
+    'siwan': 'Bihar',
+    'motihari': 'Bihar',
+    'khordha': 'Odisha',
+    'farrukhnagar': 'Haryana',
+    'ganaur': 'Haryana',
+    'singur': 'West Bengal',
+    'chandannagar': 'West Bengal',
+    'deoghar': 'Jharkhand',
+    'hathras': 'Uttar Pradesh',
 };
 
 function resolveState(city: string): string {
